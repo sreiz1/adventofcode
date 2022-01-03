@@ -3,3 +3,6 @@
 
 # virtual env data
 .venv/
+
+# personal leaderboard pictures
+screenshots/
