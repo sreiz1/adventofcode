@@ -3,6 +3,7 @@
 
 # virtual env data
 .venv/
+.venv-pypy/
 
 # personal leaderboard pictures
 screenshots/
