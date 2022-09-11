@@ -112,7 +112,6 @@ def show_report(own_name, data, year):
         print()
 
 def main(own_name, inputfile):
-    # set logging level, assumes this module is imported first
     notebooks=glob.glob('*.ipynb')
     total_yds=[]
     for n in notebooks:
