@@ -54,8 +54,7 @@ def get_timestamps(own_name, total_yds, inputfile):
     '''read an aoc leaderboard json file, and from that deduce the names
     of contestants and their supposed starting times for each exercise, and recorded completion times per star.
     this data is combined with own_name and total_yds for yourself.
-    returns a map of (day num, name) to a map with start, star1, star2 fields,
-    for each day only includes people that completed at least the first star (applies also to yourself)'''
+    returns a map of (day num, name) to a map with start, star1, star2 fields'''
     aoc=None
     with open(inputfile) as f:
         aoc=json.load(f)
@@ -77,13 +76,14 @@ def get_timestamps(own_name, total_yds, inputfile):
             key=(daynum, name)
             dd=res.setdefault(key, {})
             dd['start']=start_ts
-            dd['star1']=stardata['1']['get_star_ts']
+            if '1' in stardata:
+                dd['star1']=stardata['1']['get_star_ts']
             if '2' in stardata:
                 dd['star2']=stardata['2']['get_star_ts']
     return res, year
 
 def show_report(own_name, data, year):
-    '''for each day where you competed show the ranking up until yourself, ranked by time for second star'''
+    '''for each day where you competed show the ranking up until yourself, ranked by points'''
     own_name_enc=own_name.encode('ascii')
     for daynum0 in range(25):
         daynum=daynum0+1
@@ -95,11 +95,15 @@ def show_report(own_name, data, year):
             if key[0]!=daynum:
                 continue
             name=key[1].encode('ascii', errors='ignore') if key[1] else '?'
-            star1min=(tsdata['star1']-tsdata['start'])/60.0
+            star1min=(tsdata['star1']-tsdata['start'])/60.0 if 'star1' in tsdata else None
             star2min=(tsdata['star2']-tsdata['start'])/60.0 if 'star2' in tsdata else None
-            repdata.append([name, star1min, star2min])
-        repdata.sort(key=lambda reptup: reptup[1])
-        repdata.sort(key=lambda reptup: 1.0e10 if reptup[2] is None else reptup[2])
+            repdata.append([name, star1min, star2min, 0])
+        for score_index in [1,2]:
+            repdata.sort(key=lambda reptup: 1.0e10 if reptup[score_index] is None else reptup[score_index])
+            for i,reptup in enumerate(repdata):
+                if reptup[score_index] is not None:
+                    reptup[-1]+=len(repdata)-i
+        repdata.sort(key=lambda reptup: -reptup[-1])
         # now truncate somewhere below own position to avoid making the list too long
         for i in range(len(repdata)):
             reptup=repdata[i]
@@ -107,7 +111,7 @@ def show_report(own_name, data, year):
                 repdata=repdata[:i+6]
                 break
         report=tabulate.tabulate(repdata, floatfmt='.1f', tablefmt='text',
-         headers=['Name', 'First * (min.)', 'Second * (min.)'])
+         headers=['Name', 'First * (min.)', 'Second * (min.)', 'Score'])
         print(report)
         print()
 
