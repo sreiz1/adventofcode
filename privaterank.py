@@ -15,6 +15,7 @@
 # private leaderboard - API - JSON), 
 # usage: python privaterank.py [-ownonly] 'Own Name' leaderboard.json...
 # * You can process multiple leaderboard json files of a certain year to calculate a combined leaderboard
+# TODO currently this feature isn't working due to a failed assert
 # * -ownonly will only show a list of your own times
 # * The default is to show a ranking per day and total, based on points, up to 5 places below your own
 
@@ -174,6 +175,9 @@ def check_data(data, num_participants):
                 assert (reptup[5]==sys.maxsize) or (reptup[4]<reptup[5])
                 if i<len(repdata)-1:
                     reptup2=repdata[i+1]
+                    if not ((reptup2[score_index-2] is None) or (reptup[score_index-2]<=reptup2[score_index-2])):
+                        print('failed 1', reptup)
+                        print('failed 2', reptup2)
                     assert (reptup2[score_index-2] is None) or (reptup[score_index-2]<=reptup2[score_index-2])
                 if reptup[score_index] is not None:
                     reptup[-1]+=num_participants-i
