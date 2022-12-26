@@ -14,10 +14,10 @@
 # with your solution ranked in it (probably low because you completed it late, the file can be saved from
 # private leaderboard - API - JSON), 
 # usage: python privaterank.py [-ownonly] 'Own Name' leaderboard.json...
-# * You can process multiple leaderboard json files of a certain year to calculate a combined leaderboard
-# TODO currently this feature isn't working due to a failed assert
-# * -ownonly will only show a list of your own times
-# * The default is to show a ranking per day and total, based on points, up to 5 places below your own
+# * You can specify multiple leaderboard json files of a certain year to calculate a combined leaderboard
+# * Adding the -ownonly option will only show a list of your own times
+# * The default is to show a ranking per day (up to 5 places below your own) and total, based on points
+# * For single leaderboard files the points should match the ones reported by the AOC web site
 
 import json
 import glob
@@ -55,7 +55,7 @@ def notebook2yds(filename):
                 res.append( (year, day, start_ts) )
     return res
 
-def get_timestamps(own_name, total_yds, inputfile, res=None, year=None):
+def get_timestamps(own_name, total_yds, inputfile, res=None, year=None, multiboard=False):
     '''read an aoc leaderboard json file, and from that deduce the names
     of contestants and their supposed starting times for each exercise, and recorded completion times per star.
     this data is combined with own_name and total_yds for yourself.
@@ -85,6 +85,8 @@ def get_timestamps(own_name, total_yds, inputfile, res=None, year=None):
                 if si in stardata:
                     dd[f'star{si}']=stardata[si]['get_star_ts']
                     dd[f'star{si}index']=stardata[si]['star_index']
+                    if multiboard: # star index is per board so won't work, use less accurate timestamps
+                        dd[f'star{si}index']=stardata[si]['get_star_ts']
     patch_data(res, own_name, total_yds, year)
     all_ids={ key[1] for key in res.keys() }
     num_participants=max(len(all_ids), len(aoc['members']))
@@ -184,6 +186,10 @@ def check_data(data, num_participants):
         #print(f'day {daynum}: checked {len(repdata)} entries')
     #print(f'{num_participants=}')
 
+def encode_name(name, id):
+    '''to strip out non-ascii chars we encode to ascii and back'''
+    return name.encode('ascii', errors='ignore').decode('ascii') if name else f'(anonymous user #{id})'
+
 def show_report(own_name, data, year, num_participants):
     '''for each day where you competed show the ranking up until yourself, ranked by points,
     also calculates and returns total points per participant'''
@@ -195,7 +201,7 @@ def show_report(own_name, data, year, num_participants):
                 continue
             id=key[1]
             name=tsdata['name']
-            name_enc=name.encode('ascii', errors='ignore') if name else f'(anonymous user #{id})'
+            name_enc=encode_name(name, id)
             star1min=(tsdata['star1']-tsdata['start'])/60.0 if 'star1' in tsdata else None
             star2min=(tsdata['star2']-tsdata['start'])/60.0 if 'star2' in tsdata else None
             repdata.append([(id,name), name_enc, star1min, star2min, tsdata.get('star1index', sys.maxsize), \
@@ -218,8 +224,11 @@ def show_report(own_name, data, year, num_participants):
             reptup.pop(5)
             reptup.pop(4)
             reptup.pop(0)
+        # include rank
+        for i,reptup in enumerate(repdata):
+            reptup.insert(0, i+1)
         report=tabulate.tabulate(repdata, floatfmt='.1f', tablefmt='text',
-         headers=['Name', 'First * (min.)', 'Second * (min.)', 'Score'])
+         headers=['Rank', 'Name', 'First * (min.)', 'Second * (min.)', 'Score'])
         print(f'Ranking for day {daynum} of {year}:')
         print(report)
         print()
@@ -230,18 +239,19 @@ def show_totals(own_name, total_points, year):
     for id_name, points in total_points.items():
         id=id_name[0]
         name=id_name[1]
-        name_enc=name.encode('ascii', errors='ignore') if name else f'(anonymous user #{id})'
-        repdata.append([0, name, name_enc, points])
+        name_enc=encode_name(name, id)
+        repdata.append([name, name_enc, points])
     repdata.sort(key=lambda reptup: -reptup[-1])
-    for i,reptup in enumerate(repdata): # fill in rank
-        reptup[0]=i+1
     # truncate somewhere below own position to avoid making the list too long
     for i,reptup in enumerate(repdata):
-        if reptup[1]==own_name:
+        if reptup[0]==own_name:
             repdata=repdata[:i+20]
             break
     for reptup in repdata: # remove unencoded names
-            reptup.pop(1)
+            reptup.pop(0)
+    # include rank
+    for i,reptup in enumerate(repdata):
+        reptup.insert(0, i+1)            
     report=tabulate.tabulate(repdata, floatfmt='.1f', tablefmt='text',
      headers=['Rank', 'Name', 'Total score'])
     print(f'Total ranking for {year}:')
@@ -290,7 +300,7 @@ def main(own_name, ownonly, inputfiles):
     year=None
     num_participants=0
     for inputfile in inputfiles:
-        data, year, num_participants=get_timestamps(own_name, total_yds, inputfile, data, year)
+        data, year, num_participants=get_timestamps(own_name, total_yds, inputfile, data, year, len(inputfiles)>1)
     assert data is not None
     assert year is not None
     check_data(data, num_participants)
