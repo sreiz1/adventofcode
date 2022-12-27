@@ -5,5 +5,5 @@
 .venv/
 .venv-pypy/
 
-# personal leaderboard pictures
-screenshots/
+# compiled py files
+*.pyc
