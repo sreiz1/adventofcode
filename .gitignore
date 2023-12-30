@@ -4,6 +4,7 @@
 # virtual env data
 .venv/
 .venv-pypy/
+.venv-cpython/
 
 # compiled py files
 *.pyc
