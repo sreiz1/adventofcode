@@ -5,6 +5,7 @@ These are solutions for the Advent of Code and Leetcode puzzle sets. It's a work
 Some of the solution sets are already complete:
 * Advent of Code 2021
 * Advent of Code 2022
+* Advent of Code 2023
 * Leetcode Top Interview Questions Easy Collection
 * Leetcode Top Interview Questions Medium Collection
 
